@@ -1,0 +1,87 @@
+#include <iostream>
+using namespace std;
+
+int cost[10][10];           
+int n;                      
+
+int qu[10], front = 0, rear = 0;
+int visited[10] = {0}, visit[10] = {0};
+
+int stk[10], top = 0;
+int visited1[10] = {0}, visit1[10] = {0};
+
+int main() {
+    int m, i, j, k, v;
+
+    cout << "Enter number of vertices: ";
+    cin >> n;
+
+    cout << "Enter number of edges: ";
+    cin >> m;
+
+    cout << "\nEnter edges (format: u v):\n";
+    for (k = 1; k <= m; k++) {
+        cin >> i >> j;
+        cost[i][j] = 1;
+        cost[j][i] = 1; 
+    }
+
+    cout << "\nAdjacency Matrix:\n";
+    for (i = 1; i <= n; i++) {
+        for (j = 1; j <= n; j++) {
+            cout << " " << cost[i][j];
+        }
+        cout << endl;
+    }
+
+    cout << "\nEnter initial vertex for BFS: ";
+    cin >> v;
+    cout << "\nBFS Traversal: ";
+    cout << v << " ";
+    visited[v] = 1;
+    k = 1;
+
+    while (k < n) {
+        for (j = 1; j <= n; j++) {
+            if (cost[v][j] != 0 && visited[j] != 1 && visit[j] != 1) {
+                visit[j] = 1;
+                qu[rear++] = j;
+            }
+        }
+        v = qu[front++];
+        cout << v << " ";
+        k++;
+        visit[v] = 0;
+        visited[v] = 1;
+    }
+
+    for (i = 1; i <= n; i++) {
+        visited1[i] = 0;
+        visit1[i] = 0;
+    }
+    top = 0;
+
+    cout << "\n\nEnter initial vertex for DFS: ";
+    cin >> v;
+    cout << "\nDFS Traversal: ";
+    cout << v << " ";
+    visited1[v] = 1;
+    k = 1;
+
+    while (k < n) {
+        for (j = n; j >= 1; j--) {
+            if (cost[v][j] != 0 && visited1[j] != 1 && visit1[j] != 1) {
+                visit1[j] = 1;
+                stk[top++] = j;
+            }
+        }
+        v = stk[--top];
+        cout << v << " ";
+        k++;
+        visit1[v] = 0;
+        visited1[v] = 1;
+    }
+
+    cout << endl;
+    return 0;
+}
