@@ -1,0 +1,168 @@
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include <vector>
+#include <algorithm>
+using namespace std;
+struct Employee {
+    int id;
+    char name[20];
+    char designation[20];
+    int salary;
+
+    void input() {
+        cout << "Enter Employee ID: ";
+        cin >> id;
+        cout << "Enter Name: ";
+        cin >> name;
+        cout << "Enter Designation: ";
+        cin >> designation;
+        cout << "Enter Salary: ";
+        cin >> salary;
+    }
+
+    void display() const {
+        cout << setw(5) << id << setw(15) << name << setw(20)
+             << designation << setw(10) << salary << endl;
+    }
+};
+
+struct IndexEntry {
+    int id;
+    long pos;
+
+    bool operator<(const IndexEntry &other) const {
+        return id < other.id;
+    }
+};
+const char *DATA_FILE = "EmployeeData.dat";
+const char *INDEX_FILE = "EmployeeIndex.dat";
+
+vector<IndexEntry> loadIndex() {
+    vector<IndexEntry> index;
+    ifstream fin(INDEX_FILE, ios::binary);
+    IndexEntry entry;
+    while (fin.read((char *)&entry, sizeof(entry))) {
+        index.push_back(entry);
+    }
+    fin.close();
+    return index;
+}
+void saveIndex(const vector<IndexEntry> &index) {
+    ofstream fout(INDEX_FILE, ios::binary | ios::trunc);
+    for (const auto &entry : index) {
+        fout.write((char *)&entry, sizeof(entry));
+    }
+    fout.close();
+}
+
+void addRecord() {
+    Employee emp;
+    emp.input();
+
+    ofstream dataOut(DATA_FILE, ios::binary | ios::app);
+    long pos = dataOut.tellp();
+    dataOut.write((char *)&emp, sizeof(emp));
+    dataOut.close();
+
+    vector<IndexEntry> index = loadIndex();
+    index.push_back({emp.id, pos});
+    sort(index.begin(), index.end());
+    saveIndex(index);
+    cout << "Record added successfully.\n";
+}
+
+void displayAll() {
+    ifstream dataIn(DATA_FILE, ios::binary);
+    Employee emp;
+    cout << setw(5) << "ID" << setw(15) << "NAME" << setw(20) << "DESIGNATION" << setw(10) << "SALARY\n";
+    while (dataIn.read((char *)&emp, sizeof(emp))) {
+        emp.display();
+    }
+    dataIn.close();
+}
+
+void searchRecord() {
+    int id;
+    cout << "Enter Employee ID to search: ";
+    cin >> id;
+
+    vector<IndexEntry> index = loadIndex();
+    auto it = find_if(index.begin(), index.end(), [id](IndexEntry &e) { return e.id == id; });
+
+    if (it != index.end()) {
+        ifstream dataIn(DATA_FILE, ios::binary);
+        dataIn.seekg(it->pos);
+        Employee emp;
+        dataIn.read((char *)&emp, sizeof(emp));
+        dataIn.close();
+        cout << "\nRecord Found:\n";
+        cout << setw(5) << "ID" << setw(15) << "NAME" << setw(20) << "DESIGNATION" << setw(10) << "SALARY\n";
+        emp.display();
+    } else {
+        cout << "Record not found.\n";
+    }
+}
+
+void deleteRecord() {
+    int id;
+    cout << "Enter Employee ID to delete: ";
+    cin >> id;
+
+    vector<IndexEntry> index = loadIndex();
+    auto it = find_if(index.begin(), index.end(), [id](IndexEntry &e) { return e.id == id; });
+
+    if (it == index.end()) {
+        cout << "Record not found.\n";
+        return;
+    }
+
+    ifstream dataIn(DATA_FILE, ios::binary);
+    ofstream tempOut("TempData.dat", ios::binary);
+    Employee emp;
+    long pos = 0;
+
+    vector<IndexEntry> newIndex;
+
+    while (dataIn.read((char *)&emp, sizeof(emp))) {
+        if (emp.id != id) {
+            long currPos = tempOut.tellp();
+            tempOut.write((char *)&emp, sizeof(emp));
+            newIndex.push_back({emp.id, currPos});
+        }
+    }
+
+    dataIn.close();
+    tempOut.close();
+
+    remove(DATA_FILE);
+    rename("TempData.dat", DATA_FILE);
+
+    saveIndex(newIndex);
+    cout << "Record deleted successfully.\n";
+}
+
+int main() {
+    int choice;
+    do {
+        cout << "\n----- Employee Management System (Index Sequential File) -----\n";
+        cout << "1. Add New Record\n";
+        cout << "2. Display All Records\n";
+        cout << "3. Search Record by ID\n";
+        cout << "4. Delete Record by ID\n";
+        cout << "5. Exit\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1: addRecord(); break;
+            case 2: displayAll(); break;
+            case 3: searchRecord(); break;
+            case 4: deleteRecord(); break;
+            case 5: cout << "Exiting...\n"; break;
+            default: cout << "Invalid choice!\n";
+        }
+    } while (choice != 5);
+
+    return 0;
+}
